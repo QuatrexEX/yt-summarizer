@@ -1,8 +1,9 @@
 """メインビュー"""
 import flet as ft
+import webbrowser
 from pathlib import Path
 from app.models.video import Video, VideoStore
-from app.services.youtube import extract_video_id, get_thumbnail_url, get_embed_url, format_time
+from app.services.youtube import extract_video_id, get_thumbnail_url, format_time
 from app.services.transcript import get_transcript
 from app.services.gemini import summarize_transcript, set_api_key, get_api_key
 
@@ -27,10 +28,27 @@ class MainView:
             on_submit=self.add_video,
         )
         self.video_list = ft.ListView(expand=True, spacing=5, padding=10)
-        self.webview = ft.WebView(
-            expand=True,
-            url="about:blank",
+
+        # プレイヤーエリア（WebViewの代わりにサムネイル + ボタン）
+        self.player_thumbnail = ft.Image(
+            src="",
+            width=480,
+            height=270,
+            fit=ft.ImageFit.CONTAIN,
+            visible=False,
         )
+        self.player_placeholder = ft.Text(
+            "動画を選択してください",
+            size=16,
+            color=ft.Colors.WHITE,
+        )
+        self.open_browser_btn = ft.ElevatedButton(
+            "ブラウザで再生",
+            icon=ft.Icons.OPEN_IN_NEW,
+            on_click=self.open_in_browser,
+            visible=False,
+        )
+
         self.summary_text = ft.Text("動画を選択してください", selectable=True)
         self.transcript_list = ft.ListView(expand=True, spacing=2, padding=10)
         self.tabs = ft.Tabs(
@@ -44,6 +62,37 @@ class MainView:
 
         self._build_ui()
         self._refresh_video_list()
+
+    def _build_player_area(self) -> ft.Container:
+        """プレイヤーエリアを構築"""
+        return ft.Container(
+            height=350,
+            bgcolor=ft.Colors.GREY_900,
+            border_radius=10,
+            content=ft.Column([
+                ft.Container(
+                    expand=True,
+                    content=ft.Stack([
+                        ft.Container(
+                            content=self.player_placeholder,
+                            alignment=ft.alignment.center,
+                        ),
+                        ft.Container(
+                            content=self.player_thumbnail,
+                            alignment=ft.alignment.center,
+                        ),
+                    ]),
+                ),
+                ft.Container(
+                    padding=10,
+                    content=ft.Row([
+                        ft.Container(expand=True),
+                        self.open_browser_btn,
+                        ft.Container(expand=True),
+                    ]),
+                ),
+            ], alignment=ft.MainAxisAlignment.CENTER),
+        )
 
     def _build_ui(self):
         """UIを構築"""
@@ -75,12 +124,8 @@ class MainView:
 
         # メインエリア
         main_area = ft.Column([
-            # 動画プレイヤー
-            ft.Container(
-                height=400,
-                bgcolor=ft.Colors.BLACK,
-                content=self.webview,
-            ),
+            # 動画プレイヤーエリア
+            self._build_player_area(),
             # タブ（要約・字幕）
             ft.Container(
                 expand=True,
@@ -223,17 +268,37 @@ class MainView:
         self.store.remove(video.id)
         if self.current_video_id == video.id:
             self.current_video_id = None
-            self.webview.url = "about:blank"
+            self._update_player_display(None)
         self._refresh_video_list()
         self.show_snackbar("動画を削除しました")
 
     def select_video(self, video: Video):
         """動画を選択"""
         self.current_video_id = video.id
-        self.webview.url = get_embed_url(video.id)
+        self._update_player_display(video)
         self._refresh_video_list()
         self._update_summary_display(video)
         self._update_transcript_display(video)
+
+    def _update_player_display(self, video: Video | None):
+        """プレイヤー表示を更新"""
+        if video:
+            # 高画質サムネイルを使用
+            self.player_thumbnail.src = f"https://img.youtube.com/vi/{video.id}/maxresdefault.jpg"
+            self.player_thumbnail.visible = True
+            self.player_placeholder.visible = False
+            self.open_browser_btn.visible = True
+        else:
+            self.player_thumbnail.visible = False
+            self.player_placeholder.visible = True
+            self.open_browser_btn.visible = False
+        self.page.update()
+
+    def open_in_browser(self, e):
+        """ブラウザで動画を開く"""
+        if self.current_video_id:
+            url = f"https://www.youtube.com/watch?v={self.current_video_id}"
+            webbrowser.open(url)
 
     def fetch_transcript(self, e):
         """字幕を取得"""
