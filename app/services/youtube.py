@@ -1,6 +1,19 @@
 """YouTube関連ユーティリティ"""
 import re
+import urllib.request
+import json
 from typing import Optional
+
+
+def get_video_title(video_id: str) -> str:
+    """YouTube oEmbed APIから動画タイトルを取得"""
+    try:
+        url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={video_id}&format=json"
+        with urllib.request.urlopen(url, timeout=10) as response:
+            data = json.loads(response.read().decode("utf-8"))
+            return data.get("title", f"動画 {video_id}")
+    except Exception:
+        return f"動画 {video_id}"
 
 
 def extract_video_id(url: str) -> Optional[str]:

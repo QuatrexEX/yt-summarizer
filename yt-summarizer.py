@@ -3,7 +3,7 @@ import flet as ft
 import webbrowser
 from pathlib import Path
 from app.models.video import Video, VideoStore
-from app.services.youtube import extract_video_id, get_thumbnail_url, format_time
+from app.services.youtube import extract_video_id, get_thumbnail_url, get_video_title, format_time
 from app.services.transcript import get_transcript
 from app.services.gemini import summarize_transcript, set_api_key, get_api_key
 
@@ -12,7 +12,7 @@ class YTSummarizer:
     def __init__(self, page: ft.Page):
         self.page = page
         self.page.title = "YT Summarizer"
-        self.page.window.width = 1100
+        self.page.window.width = 1300
         self.page.window.height = 750
         self.page.padding = 0
 
@@ -30,11 +30,15 @@ class YTSummarizer:
         )
         self.video_list = ft.ListView(expand=True, spacing=2, padding=10)
 
-        # 右側パネル
-        self.video_title = ft.Text("", size=18, weight=ft.FontWeight.BOLD, max_lines=2)
-        self.video_link = ft.TextButton("", icon=ft.Icons.OPEN_IN_NEW, on_click=self.open_video, visible=False)
-        self.summary_text = ft.Text("", selectable=True, size=14)
+        # 中央・右パネル共通ヘッダー
+        self.video_title = ft.Text("", size=16, weight=ft.FontWeight.BOLD, max_lines=2, expand=True)
+        self.video_link = ft.TextButton("YouTubeで見る", icon=ft.Icons.OPEN_IN_NEW, on_click=self.open_video, visible=False)
+
+        # 字幕パネル
         self.transcript_list = ft.ListView(expand=True, spacing=1, padding=5)
+
+        # 要約パネル
+        self.summary_text = ft.Text("", selectable=True, size=14)
 
         self._build_ui()
         self._refresh_video_list()
@@ -59,12 +63,11 @@ class YTSummarizer:
             ]),
         )
 
-        # 左サイドバー（動画リスト）
-        sidebar = ft.Container(
-            width=320,
+        # 左カラム：動画リスト
+        left_column = ft.Container(
+            width=280,
             bgcolor=ft.Colors.GREY_100,
             content=ft.Column([
-                # URL入力
                 ft.Container(
                     padding=12,
                     content=ft.Row([
@@ -78,89 +81,83 @@ class YTSummarizer:
                     ]),
                 ),
                 ft.Divider(height=1),
-                # 動画リスト
                 ft.Container(expand=True, content=self.video_list),
             ]),
         )
 
-        # 右メインエリア
-        main_content = ft.Container(
+        # 中央カラム：字幕
+        center_column = ft.Container(
             expand=True,
-            padding=20,
+            padding=15,
             content=ft.Column([
-                # 動画タイトル＆リンク
                 ft.Row([
-                    ft.Container(content=self.video_title, expand=True),
-                    self.video_link,
+                    ft.Text("字幕", size=16, weight=ft.FontWeight.BOLD),
+                    ft.Container(expand=True),
+                    ft.ElevatedButton(
+                        "取得",
+                        icon=ft.Icons.DOWNLOAD,
+                        on_click=self.fetch_transcript,
+                    ),
                 ]),
                 ft.Divider(),
-                # タブ
-                ft.Tabs(
-                    selected_index=0,
-                    tabs=[
-                        ft.Tab(
-                            text="要約",
-                            icon=ft.Icons.AUTO_AWESOME,
-                            content=self._build_summary_panel(),
-                        ),
-                        ft.Tab(
-                            text="字幕",
-                            icon=ft.Icons.SUBTITLES,
-                            content=self._build_transcript_panel(),
-                        ),
-                    ],
+                ft.Container(expand=True, content=self.transcript_list),
+            ]),
+        )
+
+        # 右カラム：要約
+        right_column = ft.Container(
+            expand=True,
+            padding=15,
+            content=ft.Column([
+                ft.Row([
+                    ft.Text("要約", size=16, weight=ft.FontWeight.BOLD),
+                    ft.Container(expand=True),
+                    ft.ElevatedButton(
+                        "生成",
+                        icon=ft.Icons.AUTO_AWESOME,
+                        bgcolor=ft.Colors.BLUE_600,
+                        color=ft.Colors.WHITE,
+                        on_click=self.generate_summary,
+                    ),
+                ]),
+                ft.Divider(),
+                ft.Container(
                     expand=True,
+                    content=ft.Column([self.summary_text], scroll=ft.ScrollMode.AUTO),
                 ),
             ]),
         )
+
+        # タイトルバー（中央・右の上部に配置）
+        title_bar = ft.Container(
+            padding=ft.padding.only(left=15, right=15, top=10, bottom=5),
+            content=ft.Row([
+                self.video_title,
+                self.video_link,
+            ]),
+        )
+
+        # 中央＋右エリア
+        main_area = ft.Column([
+            title_bar,
+            ft.Divider(height=1),
+            ft.Row([
+                center_column,
+                ft.VerticalDivider(width=1),
+                right_column,
+            ], expand=True),
+        ], expand=True)
 
         # レイアウト
         self.page.add(
             ft.Column([
                 header,
                 ft.Row([
-                    sidebar,
+                    left_column,
                     ft.VerticalDivider(width=1),
-                    main_content,
+                    ft.Container(content=main_area, expand=True),
                 ], expand=True),
             ], expand=True, spacing=0)
-        )
-
-    def _build_summary_panel(self) -> ft.Container:
-        """要約パネル"""
-        return ft.Container(
-            padding=ft.padding.only(top=15),
-            content=ft.Column([
-                ft.Row([
-                    ft.ElevatedButton(
-                        "字幕を取得",
-                        icon=ft.Icons.DOWNLOAD,
-                        on_click=self.fetch_transcript,
-                    ),
-                    ft.ElevatedButton(
-                        "要約を生成",
-                        icon=ft.Icons.AUTO_AWESOME,
-                        bgcolor=ft.Colors.BLUE_600,
-                        color=ft.Colors.WHITE,
-                        on_click=self.generate_summary,
-                    ),
-                ], spacing=10),
-                ft.Container(height=10),
-                ft.Container(
-                    expand=True,
-                    content=ft.Column(
-                        [self.summary_text],
-                        scroll=ft.ScrollMode.AUTO,
-                    ),
-                ),
-            ]),
-        )
-
-    def _build_transcript_panel(self) -> ft.Container:
-        """字幕パネル"""
-        return ft.Container(
-            padding=ft.padding.only(top=15),
-            content=self.transcript_list,
         )
 
     def _refresh_video_list(self):
@@ -174,10 +171,10 @@ class YTSummarizer:
         """動画リストアイテム"""
         is_selected = video.id == self.current_video_id
 
-        # タイトルを短縮（30文字以上は省略）
+        # タイトルを短縮（25文字以上は省略）
         title = video.title
-        if len(title) > 30:
-            title = title[:30] + "..."
+        if len(title) > 25:
+            title = title[:25] + "..."
 
         return ft.Container(
             bgcolor=ft.Colors.BLUE_100 if is_selected else ft.Colors.WHITE,
@@ -187,9 +184,8 @@ class YTSummarizer:
             on_click=lambda e, v=video: self.select_video(v),
             content=ft.Row([
                 ft.Column([
-                    ft.Text(title, size=13, weight=ft.FontWeight.W_500, max_lines=1),
+                    ft.Text(title, size=12, weight=ft.FontWeight.W_500, max_lines=1),
                     ft.Row([
-                        ft.Text(video.id, size=11, color=ft.Colors.GREY_600),
                         ft.Icon(ft.Icons.CHECK_CIRCLE, size=14, color=ft.Colors.GREEN) if video.summary else ft.Container(),
                     ], spacing=5),
                 ], expand=True, spacing=3),
@@ -218,10 +214,16 @@ class YTSummarizer:
             self.show_snackbar("この動画は既に追加されています", error=True)
             return
 
+        self.show_snackbar("動画情報を取得中...")
+        self.page.update()
+
+        # タイトルを取得
+        title = get_video_title(video_id)
+
         video = Video(
             id=video_id,
             url=url,
-            title=f"動画 {video_id}",
+            title=title,
             thumbnail=get_thumbnail_url(video_id),
         )
         self.store.add(video)
@@ -235,7 +237,7 @@ class YTSummarizer:
         self.store.remove(video.id)
         if self.current_video_id == video.id:
             self.current_video_id = None
-            self._clear_right_panel()
+            self._clear_panels()
         self._refresh_video_list()
         self.show_snackbar("削除しました")
 
@@ -243,35 +245,32 @@ class YTSummarizer:
         """動画を選択"""
         self.current_video_id = video.id
         self._refresh_video_list()
-        self._update_right_panel(video)
+        self._update_panels(video)
 
-    def _clear_right_panel(self):
-        """右パネルをクリア"""
+    def _clear_panels(self):
+        """パネルをクリア"""
         self.video_title.value = ""
         self.video_link.visible = False
         self.summary_text.value = "動画を選択してください"
         self.transcript_list.controls.clear()
+        self.transcript_list.controls.append(
+            ft.Text("動画を選択してください", color=ft.Colors.GREY_500)
+        )
         self.page.update()
 
-    def _update_right_panel(self, video: Video):
-        """右パネルを更新"""
-        # タイトル（30文字以上は省略）
-        title = video.title
-        if len(title) > 50:
-            title = title[:50] + "..."
-        self.video_title.value = title
-
-        # リンク
-        self.video_link.text = "YouTubeで見る"
+    def _update_panels(self, video: Video):
+        """パネルを更新"""
+        # タイトル
+        self.video_title.value = video.title
         self.video_link.visible = True
 
         # 要約
         if video.summary:
             self.summary_text.value = video.summary
         elif video.transcript:
-            self.summary_text.value = "「要約を生成」ボタンを押してください"
+            self.summary_text.value = "「生成」ボタンを押して要約を作成してください"
         else:
-            self.summary_text.value = "「字幕を取得」→「要約を生成」の順で実行してください"
+            self.summary_text.value = "字幕を取得してから要約を生成してください"
 
         # 字幕
         self._update_transcript_display(video)
@@ -301,7 +300,7 @@ class YTSummarizer:
                 )
         else:
             self.transcript_list.controls.append(
-                ft.Text("字幕を取得してください", color=ft.Colors.GREY_500)
+                ft.Text("「取得」ボタンを押して字幕を取得してください", color=ft.Colors.GREY_500)
             )
 
     def open_video(self, e):
@@ -326,7 +325,7 @@ class YTSummarizer:
             transcript = get_transcript(video.id)
             self.store.update(video.id, transcript=transcript)
             video = self.store.get(video.id)
-            self._update_right_panel(video)
+            self._update_panels(video)
             self.show_snackbar(f"字幕を取得しました（{len(transcript)}件）")
         except Exception as ex:
             self.show_snackbar(f"エラー: {ex}", error=True)
@@ -358,7 +357,7 @@ class YTSummarizer:
             summary = summarize_transcript(transcript_text)
             self.store.update(video.id, summary=summary)
             video = self.store.get(video.id)
-            self._update_right_panel(video)
+            self._update_panels(video)
             self._refresh_video_list()
             self.show_snackbar("要約を生成しました")
         except Exception as ex:
