@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "language": "ja",
+    "name": "Japanese",
+    "native_name": "日本語"
+  },
+  "ui": {
+    "app_title": "YT Summarizer",
+    "header": {
+      "settings": "設定",
+      "subtitle": "AI-Powered"
+    },
+    "sidebar": {
+      "video_list": "動画リスト",
+      "video_count": "{count}件",
+      "url_placeholder": "YouTube URLを入力..."
+    },
+    "content": {
+      "select_video": "動画を選択してください",
+      "watch_on_youtube": "YouTubeで見る",
+      "font_size": "文字サイズ: {scale}% (Ctrl+ホイール)"
+    },
+    "summary_panel": {
+      "title": "要約",
+      "generate": "生成",
+      "generating": "生成中...",
+      "summarized": "要約済み",
+      "prompt_generate": "「生成」ボタンを押して要約を作成してください",
+      "generating_summary": "要約を生成中..."
+    },
+    "transcript_panel": {
+      "title": "字幕",
+      "fetching": "字幕を取得中..."
+    },
+    "settings_dialog": {
+      "title": "設定",
+      "language": "言語",
+      "api_key_label": "Gemini API キー",
+      "api_key_link": "Google AI StudioでAPIキーを取得",
+      "save_and_close": "保存して閉じる",
+      "cancel": "キャンセル",
+      "saved_title": "保存完了",
+      "saved_message": "設定を保存しました"
+    },
+    "video_item": {
+      "delete_confirm": "「{title}」を削除しますか？"
+    }
+  },
+  "messages": {
+    "error": "エラー",
+    "warning": "警告",
+    "info": "情報",
+    "confirm": "確認",
+    "invalid_url": "有効なYouTube URLを入力してください",
+    "already_added": "この動画は既に追加されています",
+    "select_video_first": "動画を選択してください",
+    "get_transcript_first": "字幕を取得してから要約を生成してください",
+    "set_api_key_first": "設定からAPIキーを入力してください",
+    "summary_failed": "要約の生成に失敗しました",
+    "transcript_failed": "字幕を取得できませんでした",
+    "api_key_not_set": "Gemini APIキーが設定されていません",
+    "video_default_title": "動画 {video_id}"
+  },
+  "prompts": {
+    "summarize": "以下はYouTube動画の字幕テキストです。この動画の内容を日本語で分かりやすく要約してください。\n\n要約のフォーマット:\n- まず動画の主題を1-2文で説明\n- 次に主要なポイントを箇条書きで3-5個\n- 最後に結論や重要なポイントを1-2文で\n\n字幕テキスト:\n{transcript}"
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "language": "ko",
+    "name": "Korean",
+    "native_name": "한국어"
+  },
+  "ui": {
+    "app_title": "YT Summarizer",
+    "header": {
+      "settings": "설정",
+      "subtitle": "AI-Powered"
+    },
+    "sidebar": {
+      "video_list": "동영상 목록",
+      "video_count": "{count}개",
+      "url_placeholder": "YouTube URL을 입력하세요..."
+    },
+    "content": {
+      "select_video": "동영상을 선택하세요",
+      "watch_on_youtube": "YouTube에서 보기",
+      "font_size": "글꼴 크기: {scale}% (Ctrl+휠)"
+    },
+    "summary_panel": {
+      "title": "요약",
+      "generate": "생성",
+      "generating": "생성 중...",
+      "summarized": "요약됨",
+      "prompt_generate": "\"생성\" 버튼을 클릭하여 요약을 만드세요",
+      "generating_summary": "요약을 생성 중입니다..."
+    },
+    "transcript_panel": {
+      "title": "자막",
+      "fetching": "자막을 가져오는 중..."
+    },
+    "settings_dialog": {
+      "title": "설정",
+      "language": "언어",
+      "api_key_label": "Gemini API 키",
+      "api_key_link": "Google AI Studio에서 API 키 받기",
+      "save_and_close": "저장 후 닫기",
+      "cancel": "취소",
+      "saved_title": "저장 완료",
+      "saved_message": "설정이 저장되었습니다"
+    },
+    "video_item": {
+      "delete_confirm": "\"{title}\"을(를) 삭제하시겠습니까?"
+    }
+  },
+  "messages": {
+    "error": "오류",
+    "warning": "경고",
+    "info": "정보",
+    "confirm": "확인",
+    "invalid_url": "유효한 YouTube URL을 입력하세요",
+    "already_added": "이 동영상은 이미 추가되었습니다",
+    "select_video_first": "먼저 동영상을 선택하세요",
+    "get_transcript_first": "요약을 생성하기 전에 자막을 가져와야 합니다",
+    "set_api_key_first": "설정에서 API 키를 입력하세요",
+    "summary_failed": "요약 생성에 실패했습니다",
+    "transcript_failed": "자막을 가져오지 못했습니다",
+    "api_key_not_set": "Gemini API 키가 설정되지 않았습니다",
+    "video_default_title": "동영상 {video_id}"
+  },
+  "prompts": {
+    "summarize": "아래는 YouTube 동영상의 자막 텍스트입니다. 이 동영상의 내용을 한국어로 이해하기 쉽게 요약해 주세요.\n\n요약 형식:\n- 먼저 동영상의 주제를 1-2문장으로 설명\n- 다음으로 주요 포인트를 3-5개의 글머리 기호로 나열\n- 마지막으로 결론이나 중요한 포인트를 1-2문장으로 정리\n\n자막 텍스트:\n{transcript}"
+  }
+}

@@ -21,4 +21,4 @@ def get_transcript(video_id: str, languages: list[str] = None) -> list[Transcrip
             for entry in transcript_data
         ]
     except Exception as e:
-        raise Exception(f"字幕の取得に失敗しました: {e}")
+        raise Exception(f"TRANSCRIPT_FAILED: {e}")

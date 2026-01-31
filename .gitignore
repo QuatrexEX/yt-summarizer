@@ -20,7 +20,12 @@ Thumbs.db
 
 # Data
 data/videos.json
+data/settings.json
+data/summaries/
 
 # Environment
 .env
 .env.local
+
+# Claude Code
+CLAUDE.md

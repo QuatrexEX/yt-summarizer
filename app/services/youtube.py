@@ -11,9 +11,9 @@ def get_video_title(video_id: str) -> str:
         url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={video_id}&format=json"
         with urllib.request.urlopen(url, timeout=10) as response:
             data = json.loads(response.read().decode("utf-8"))
-            return data.get("title", f"動画 {video_id}")
+            return data.get("title", f"Video {video_id}")
     except Exception:
-        return f"動画 {video_id}"
+        return f"Video {video_id}"
 
 
 def extract_video_id(url: str) -> Optional[str]:

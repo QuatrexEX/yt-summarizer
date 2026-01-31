@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "language": "es",
+    "name": "Spanish",
+    "native_name": "Español"
+  },
+  "ui": {
+    "app_title": "YT Summarizer",
+    "header": {
+      "settings": "Configuración",
+      "subtitle": "AI-Powered"
+    },
+    "sidebar": {
+      "video_list": "Lista de videos",
+      "video_count": "{count} videos",
+      "url_placeholder": "Ingresa URL de YouTube..."
+    },
+    "content": {
+      "select_video": "Por favor selecciona un video",
+      "watch_on_youtube": "Ver en YouTube",
+      "font_size": "Tamaño de fuente: {scale}% (Ctrl+Rueda)"
+    },
+    "summary_panel": {
+      "title": "Resumen",
+      "generate": "Generar",
+      "generating": "Generando...",
+      "summarized": "Resumido",
+      "prompt_generate": "Haz clic en \"Generar\" para crear un resumen",
+      "generating_summary": "Generando resumen..."
+    },
+    "transcript_panel": {
+      "title": "Transcripción",
+      "fetching": "Obteniendo transcripción..."
+    },
+    "settings_dialog": {
+      "title": "Configuración",
+      "language": "Idioma",
+      "api_key_label": "Clave API de Gemini",
+      "api_key_link": "Obtener clave API de Google AI Studio",
+      "save_and_close": "Guardar y cerrar",
+      "cancel": "Cancelar",
+      "saved_title": "Guardado",
+      "saved_message": "Configuración guardada exitosamente"
+    },
+    "video_item": {
+      "delete_confirm": "¿Eliminar \"{title}\"?"
+    }
+  },
+  "messages": {
+    "error": "Error",
+    "warning": "Advertencia",
+    "info": "Información",
+    "confirm": "Confirmar",
+    "invalid_url": "Por favor ingresa una URL de YouTube válida",
+    "already_added": "Este video ya ha sido agregado",
+    "select_video_first": "Por favor selecciona un video primero",
+    "get_transcript_first": "Por favor espera la transcripción antes de generar un resumen",
+    "set_api_key_first": "Por favor configura tu clave API en Configuración",
+    "summary_failed": "Error al generar el resumen",
+    "transcript_failed": "Error al obtener la transcripción",
+    "api_key_not_set": "La clave API de Gemini no está configurada",
+    "video_default_title": "Video {video_id}"
+  },
+  "prompts": {
+    "summarize": "A continuación se encuentra la transcripción de un video de YouTube. Por favor resume el contenido en español de manera fácil de entender.\n\nFormato del resumen:\n- Primero, explica el tema principal en 1-2 oraciones\n- Luego, enumera los puntos clave en 3-5 viñetas\n- Finalmente, proporciona una conclusión o puntos importantes en 1-2 oraciones\n\nTranscripción:\n{transcript}"
+  }
+}

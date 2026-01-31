@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "language": "en",
+    "name": "English",
+    "native_name": "English"
+  },
+  "ui": {
+    "app_title": "YT Summarizer",
+    "header": {
+      "settings": "Settings",
+      "subtitle": "AI-Powered"
+    },
+    "sidebar": {
+      "video_list": "Video List",
+      "video_count": "{count} videos",
+      "url_placeholder": "Enter YouTube URL..."
+    },
+    "content": {
+      "select_video": "Please select a video",
+      "watch_on_youtube": "Watch on YouTube",
+      "font_size": "Font size: {scale}% (Ctrl+Wheel)"
+    },
+    "summary_panel": {
+      "title": "Summary",
+      "generate": "Generate",
+      "generating": "Generating...",
+      "summarized": "Summarized",
+      "prompt_generate": "Click \"Generate\" to create a summary",
+      "generating_summary": "Generating summary..."
+    },
+    "transcript_panel": {
+      "title": "Transcript",
+      "fetching": "Fetching transcript..."
+    },
+    "settings_dialog": {
+      "title": "Settings",
+      "language": "Language",
+      "api_key_label": "Gemini API Key",
+      "api_key_link": "Get API key from Google AI Studio",
+      "save_and_close": "Save & Close",
+      "cancel": "Cancel",
+      "saved_title": "Saved",
+      "saved_message": "Settings saved successfully"
+    },
+    "video_item": {
+      "delete_confirm": "Delete \"{title}\"?"
+    }
+  },
+  "messages": {
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Info",
+    "confirm": "Confirm",
+    "invalid_url": "Please enter a valid YouTube URL",
+    "already_added": "This video has already been added",
+    "select_video_first": "Please select a video first",
+    "get_transcript_first": "Please wait for the transcript before generating a summary",
+    "set_api_key_first": "Please set your API key in Settings",
+    "summary_failed": "Failed to generate summary",
+    "transcript_failed": "Failed to fetch transcript",
+    "api_key_not_set": "Gemini API key is not set",
+    "video_default_title": "Video {video_id}"
+  },
+  "prompts": {
+    "summarize": "Below is the transcript of a YouTube video. Please summarize the content in English in an easy-to-understand manner.\n\nSummary format:\n- First, explain the main topic in 1-2 sentences\n- Then, list the key points in 3-5 bullet points\n- Finally, provide a conclusion or important takeaways in 1-2 sentences\n\nTranscript:\n{transcript}"
+  }
+}

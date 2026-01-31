@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "language": "zh-CN",
+    "name": "Chinese (Simplified)",
+    "native_name": "简体中文"
+  },
+  "ui": {
+    "app_title": "YT Summarizer",
+    "header": {
+      "settings": "设置",
+      "subtitle": "AI-Powered"
+    },
+    "sidebar": {
+      "video_list": "视频列表",
+      "video_count": "{count}个",
+      "url_placeholder": "输入YouTube网址..."
+    },
+    "content": {
+      "select_video": "请选择一个视频",
+      "watch_on_youtube": "在YouTube观看",
+      "font_size": "字体大小: {scale}% (Ctrl+滚轮)"
+    },
+    "summary_panel": {
+      "title": "摘要",
+      "generate": "生成",
+      "generating": "生成中...",
+      "summarized": "已摘要",
+      "prompt_generate": "点击\"生成\"按钮创建摘要",
+      "generating_summary": "正在生成摘要..."
+    },
+    "transcript_panel": {
+      "title": "字幕",
+      "fetching": "正在获取字幕..."
+    },
+    "settings_dialog": {
+      "title": "设置",
+      "language": "语言",
+      "api_key_label": "Gemini API 密钥",
+      "api_key_link": "从Google AI Studio获取API密钥",
+      "save_and_close": "保存并关闭",
+      "cancel": "取消",
+      "saved_title": "已保存",
+      "saved_message": "设置已成功保存"
+    },
+    "video_item": {
+      "delete_confirm": "删除\"{title}\"吗？"
+    }
+  },
+  "messages": {
+    "error": "错误",
+    "warning": "警告",
+    "info": "信息",
+    "confirm": "确认",
+    "invalid_url": "请输入有效的YouTube网址",
+    "already_added": "该视频已添加",
+    "select_video_first": "请先选择一个视频",
+    "get_transcript_first": "请等待字幕获取完成后再生成摘要",
+    "set_api_key_first": "请在设置中输入API密钥",
+    "summary_failed": "摘要生成失败",
+    "transcript_failed": "字幕获取失败",
+    "api_key_not_set": "Gemini API密钥未设置",
+    "video_default_title": "视频 {video_id}"
+  },
+  "prompts": {
+    "summarize": "以下是YouTube视频的字幕文本。请用简体中文对这个视频的内容进行易于理解的摘要。\n\n摘要格式:\n- 首先用1-2句话说明视频的主题\n- 然后用3-5个要点列出主要内容\n- 最后用1-2句话总结结论或重要观点\n\n字幕文本:\n{transcript}"
+  }
+}

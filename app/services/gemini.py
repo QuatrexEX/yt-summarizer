@@ -18,14 +18,24 @@ def get_api_key() -> Optional[str]:
     return _api_key
 
 
-def summarize_transcript(transcript_text: str) -> str:
-    """字幕テキストを要約"""
+def summarize_transcript(transcript_text: str, prompt_template: Optional[str] = None) -> str:
+    """
+    字幕テキストを要約
+
+    Args:
+        transcript_text: 字幕テキスト
+        prompt_template: プロンプトテンプレート（{transcript}プレースホルダーを含む）
+    """
     if not _api_key:
-        raise Exception("Gemini APIキーが設定されていません")
+        raise Exception("API_KEY_NOT_SET")
 
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    model = genai.GenerativeModel("gemini-2.5-flash")
 
-    prompt = f"""以下はYouTube動画の字幕テキストです。この動画の内容を日本語で分かりやすく要約してください。
+    if prompt_template:
+        prompt = prompt_template.replace("{transcript}", transcript_text)
+    else:
+        # デフォルトプロンプト（日本語）
+        prompt = f"""以下はYouTube動画の字幕テキストです。この動画の内容を日本語で分かりやすく要約してください。
 
 要約のフォーマット:
 - まず動画の主題を1-2文で説明

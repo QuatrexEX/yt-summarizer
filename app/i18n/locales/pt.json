@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "language": "pt",
+    "name": "Portuguese",
+    "native_name": "Português"
+  },
+  "ui": {
+    "app_title": "YT Summarizer",
+    "header": {
+      "settings": "Configurações",
+      "subtitle": "AI-Powered"
+    },
+    "sidebar": {
+      "video_list": "Lista de vídeos",
+      "video_count": "{count} vídeos",
+      "url_placeholder": "Digite a URL do YouTube..."
+    },
+    "content": {
+      "select_video": "Por favor selecione um vídeo",
+      "watch_on_youtube": "Assistir no YouTube",
+      "font_size": "Tamanho da fonte: {scale}% (Ctrl+Roda)"
+    },
+    "summary_panel": {
+      "title": "Resumo",
+      "generate": "Gerar",
+      "generating": "Gerando...",
+      "summarized": "Resumido",
+      "prompt_generate": "Clique em \"Gerar\" para criar um resumo",
+      "generating_summary": "Gerando resumo..."
+    },
+    "transcript_panel": {
+      "title": "Transcrição",
+      "fetching": "Obtendo transcrição..."
+    },
+    "settings_dialog": {
+      "title": "Configurações",
+      "language": "Idioma",
+      "api_key_label": "Chave API do Gemini",
+      "api_key_link": "Obter chave API do Google AI Studio",
+      "save_and_close": "Salvar e fechar",
+      "cancel": "Cancelar",
+      "saved_title": "Salvo",
+      "saved_message": "Configurações salvas com sucesso"
+    },
+    "video_item": {
+      "delete_confirm": "Excluir \"{title}\"?"
+    }
+  },
+  "messages": {
+    "error": "Erro",
+    "warning": "Aviso",
+    "info": "Informação",
+    "confirm": "Confirmar",
+    "invalid_url": "Por favor digite uma URL do YouTube válida",
+    "already_added": "Este vídeo já foi adicionado",
+    "select_video_first": "Por favor selecione um vídeo primeiro",
+    "get_transcript_first": "Por favor aguarde a transcrição antes de gerar um resumo",
+    "set_api_key_first": "Por favor configure sua chave API nas Configurações",
+    "summary_failed": "Falha ao gerar resumo",
+    "transcript_failed": "Falha ao obter transcrição",
+    "api_key_not_set": "A chave API do Gemini não está configurada",
+    "video_default_title": "Vídeo {video_id}"
+  },
+  "prompts": {
+    "summarize": "Abaixo está a transcrição de um vídeo do YouTube. Por favor resuma o conteúdo em português de forma fácil de entender.\n\nFormato do resumo:\n- Primeiro, explique o tema principal em 1-2 frases\n- Em seguida, liste os pontos principais em 3-5 tópicos\n- Por fim, forneça uma conclusão ou pontos importantes em 1-2 frases\n\nTranscrição:\n{transcript}"
+  }
+}
