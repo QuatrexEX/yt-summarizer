@@ -12,7 +12,7 @@ def get_transcript(video_id: str, languages: list[str] = None) -> list[Transcrip
         api = YouTubeTranscriptApi()
         transcript_data = api.fetch(video_id, languages=languages)
 
-        return [
+        entries = [
             TranscriptEntry(
                 text=entry.text,
                 start=entry.start,
@@ -20,5 +20,10 @@ def get_transcript(video_id: str, languages: list[str] = None) -> list[Transcrip
             )
             for entry in transcript_data
         ]
+
+        if not entries:
+            raise Exception("TRANSCRIPT_FAILED: Empty transcript returned")
+
+        return entries
     except Exception as e:
         raise Exception(f"TRANSCRIPT_FAILED: {e}")

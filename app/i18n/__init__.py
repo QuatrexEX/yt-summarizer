@@ -40,8 +40,8 @@ class I18nManager:
                 try:
                     with open(file_path, "r", encoding="utf-8") as f:
                         self._translations[lang] = json.load(f)
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"[WARN] Failed to load translation '{lang}': {e}")
 
     def set_language(self, language: str) -> bool:
         """
@@ -140,8 +140,8 @@ class I18nManager:
         for callback in self._observers:
             try:
                 callback()
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[WARN] i18n observer callback failed: {e}")
 
     def get_supported_languages(self) -> list[tuple[str, str]]:
         """

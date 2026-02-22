@@ -4,6 +4,13 @@ import urllib.request
 import json
 from typing import Optional
 
+_VIDEO_ID_RE = re.compile(r'^[a-zA-Z0-9_-]{11}$')
+
+
+def validate_video_id(video_id: str) -> bool:
+    """動画IDが有効な形式かチェック"""
+    return bool(_VIDEO_ID_RE.match(video_id))
+
 
 def get_video_title(video_id: str) -> str:
     """YouTube oEmbed APIから動画タイトルを取得"""
@@ -12,7 +19,8 @@ def get_video_title(video_id: str) -> str:
         with urllib.request.urlopen(url, timeout=10) as response:
             data = json.loads(response.read().decode("utf-8"))
             return data.get("title", f"Video {video_id}")
-    except Exception:
+    except Exception as e:
+        print(f"[WARN] get_video_title failed: {e}")
         return f"Video {video_id}"
 
 
@@ -25,7 +33,9 @@ def extract_video_id(url: str) -> Optional[str]:
     for pattern in patterns:
         match = re.search(pattern, url)
         if match:
-            return match.group(1)
+            video_id = match.group(1)
+            if validate_video_id(video_id):
+                return video_id
     return None
 
 

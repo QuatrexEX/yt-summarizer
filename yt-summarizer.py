@@ -10,7 +10,7 @@ import requests
 from PIL import Image, ImageTk
 
 from app.models.video import Video, VideoStore, SummaryStore, SettingsStore
-from app.services.youtube import extract_video_id, get_thumbnail_url, get_video_title, format_time
+from app.services.youtube import extract_video_id, get_thumbnail_url, get_video_title, format_time, validate_video_id
 from app.services.transcript import get_transcript
 from app.services.gemini import summarize_transcript, set_api_key, get_api_key
 from app.i18n import I18nManager
@@ -26,6 +26,11 @@ class YTSummarizer:
 
     # 定数をクラス変数として参照
     COLORS = COLORS
+
+    # マークダウンインラインパース用正規表現（プリコンパイル）
+    _RE_INLINE_SPLIT = re.compile(r'(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)')
+    _RE_NUMBERED_LIST = re.compile(r'^\d+\.\s')
+    _RE_NUMBERED_LIST_NUM = re.compile(r'^(\d+)\.\s')
 
     def __init__(self, root: tk.Tk):
         self.root = root
@@ -52,6 +57,7 @@ class YTSummarizer:
         self.current_video_id: str | None = None
         self.font_scale = self.settings.get("font_scale", FONT_SCALE_DEFAULT)
         self.thumbnail_cache: dict[str, ImageTk.PhotoImage] = {}
+        self._is_closing = False
 
         # APIキー復元
         saved_api_key = self.settings.get("api_key", "")
@@ -157,16 +163,7 @@ class YTSummarizer:
                                   activeforeground=self.COLORS["text_inverse"],
                                   command=self._show_settings)
         self.settings_btn.pack(side=tk.RIGHT, padx=20, pady=10)
-
-        # ホバー効果
-        def on_enter(e):
-            self.settings_btn.configure(bg=self.COLORS["accent"])
-
-        def on_leave(e):
-            self.settings_btn.configure(bg=self.COLORS["primary_light"])
-
-        self.settings_btn.bind("<Enter>", on_enter)
-        self.settings_btn.bind("<Leave>", on_leave)
+        self._bind_hover(self.settings_btn, self.COLORS["accent"], self.COLORS["primary_light"])
 
     def _build_video_list_panel(self, parent):
         """動画リストパネル構築 - Refined Editorial Style"""
@@ -197,18 +194,11 @@ class YTSummarizer:
         input_frame = tk.Frame(left_panel, bg=self.COLORS["surface"])
         input_frame.pack(fill=tk.X, padx=16, pady=(0, 16))
 
-        # 入力フィールドコンテナ - より目立つボーダー
-        self.url_entry_container = tk.Frame(input_frame, bg=self.COLORS["border"])
-        self.url_entry_container.pack(side=tk.LEFT, fill=tk.X, expand=True)
-
-        entry_inner = tk.Frame(self.url_entry_container, bg=self.COLORS["surface_alt"])
-        entry_inner.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
-
-        self.url_entry = tk.Entry(entry_inner, font=(font_family, 10),
-                                   relief=tk.FLAT, bg=self.COLORS["surface_alt"],
-                                   fg=self.COLORS["text"],
-                                   insertbackground=self.COLORS["accent"])
-        self.url_entry.pack(fill=tk.X, padx=12, pady=10)
+        # 入力フィールドコンテナ
+        self.url_entry_container, self.url_entry = self._create_bordered_entry(
+            input_frame, font=(font_family, 10),
+            pack_kwargs={"side": tk.LEFT, "fill": tk.X, "expand": True}
+        )
         self.url_entry.bind("<Return>", lambda e: self._add_video())
 
         # プレースホルダー
@@ -239,16 +229,7 @@ class YTSummarizer:
                             activeforeground=self.COLORS["text_inverse"],
                             command=self._add_video)
         add_btn.pack(side=tk.RIGHT, padx=(12, 0))
-
-        # ホバー効果
-        def on_btn_enter(e):
-            add_btn.configure(bg=self.COLORS["accent_hover"])
-
-        def on_btn_leave(e):
-            add_btn.configure(bg=self.COLORS["accent"])
-
-        add_btn.bind("<Enter>", on_btn_enter)
-        add_btn.bind("<Leave>", on_btn_leave)
+        self._bind_hover(add_btn, self.COLORS["accent_hover"], self.COLORS["accent"])
 
         # 区切り線
         separator = tk.Frame(left_panel, bg=self.COLORS["border"], height=1)
@@ -323,16 +304,7 @@ class YTSummarizer:
                                       font=(font_family, 10, "bold"))
         self.youtube_link.pack(side=tk.RIGHT, padx=(20, 0))
         self.youtube_link.bind("<Button-1>", lambda e: self._open_youtube())
-
-        # ホバー効果
-        def on_link_enter(e):
-            self.youtube_link.configure(fg=self.COLORS["accent_hover"])
-
-        def on_link_leave(e):
-            self.youtube_link.configure(fg=self.COLORS["accent"])
-
-        self.youtube_link.bind("<Enter>", on_link_enter)
-        self.youtube_link.bind("<Leave>", on_link_leave)
+        self._bind_hover(self.youtube_link, self.COLORS["accent_hover"], self.COLORS["accent"], config_key="fg")
 
         # 区切り線
         separator = tk.Frame(right_area, bg=self.COLORS["border"], height=1)
@@ -407,18 +379,7 @@ class YTSummarizer:
                                        activeforeground=self.COLORS["text_inverse"],
                                        command=self._generate_summary)
         self.generate_btn.pack(side=tk.RIGHT)
-
-        # ホバー効果
-        def on_gen_enter(e):
-            if self.generate_btn["state"] != tk.DISABLED:
-                self.generate_btn.configure(bg=self.COLORS["accent_hover"])
-
-        def on_gen_leave(e):
-            if self.generate_btn["state"] != tk.DISABLED:
-                self.generate_btn.configure(bg=self.COLORS["accent"])
-
-        self.generate_btn.bind("<Enter>", on_gen_enter)
-        self.generate_btn.bind("<Leave>", on_gen_leave)
+        self._bind_hover(self.generate_btn, self.COLORS["accent_hover"], self.COLORS["accent"], check_state=True)
 
         # 区切り線
         separator = tk.Frame(frame, bg=self.COLORS["border"], height=1)
@@ -548,6 +509,77 @@ class YTSummarizer:
         # ウィンドウ閉じる時
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
+    # --- ヘルパーメソッド ---
+
+    def _bind_hover(self, widget, enter_color, leave_color, check_state=False, config_key="bg"):
+        """ホバー効果をバインド"""
+        def on_enter(e):
+            if check_state and widget["state"] == tk.DISABLED:
+                return
+            widget.configure(**{config_key: enter_color})
+        def on_leave(e):
+            if check_state and widget["state"] == tk.DISABLED:
+                return
+            widget.configure(**{config_key: leave_color})
+        widget.bind("<Enter>", on_enter)
+        widget.bind("<Leave>", on_leave)
+
+    def _set_text_content(self, widget, text):
+        """テキストウィジェットの内容を設定"""
+        widget.configure(state=tk.NORMAL)
+        widget.delete("1.0", tk.END)
+        widget.insert("1.0", text)
+        widget.configure(state=tk.DISABLED)
+
+    def _reset_generate_btn(self):
+        """生成ボタンを初期状態にリセット"""
+        self.generate_btn.configure(
+            state=tk.NORMAL,
+            text=f"✨ {self.i18n.t('ui.summary_panel.generate')}",
+            bg=self.COLORS["accent"]
+        )
+
+    def _create_bordered_entry(self, parent, font, show=None, pack_kwargs=None):
+        """ボーダー付きエントリーフィールドを作成"""
+        container = tk.Frame(parent, bg=self.COLORS["border"])
+        if pack_kwargs:
+            container.pack(**pack_kwargs)
+
+        inner = tk.Frame(container, bg=self.COLORS["surface_alt"])
+        inner.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
+
+        entry_kwargs = {
+            "font": font,
+            "relief": tk.FLAT,
+            "bg": self.COLORS["surface_alt"],
+            "fg": self.COLORS["text"],
+            "insertbackground": self.COLORS["accent"],
+        }
+        if show:
+            entry_kwargs["show"] = show
+
+        entry = tk.Entry(inner, **entry_kwargs)
+        entry.pack(fill=tk.X, padx=12, pady=10)
+
+        def on_focus_in(e):
+            container.configure(bg=self.COLORS["accent"])
+        def on_focus_out(e):
+            container.configure(bg=self.COLORS["border"])
+
+        entry.bind("<FocusIn>", on_focus_in)
+        entry.bind("<FocusOut>", on_focus_out)
+
+        return container, entry
+
+    def _safe_after(self, delay, callback):
+        """スレッドセーフなroot.after()呼び出し"""
+        if self._is_closing:
+            return
+        try:
+            self.root.after(delay, callback)
+        except tk.TclError:
+            pass
+
     def _get_font_size(self) -> int:
         """現在のフォントサイズを計算"""
         return max(8, int(BASE_FONT_SIZE * self.font_scale / 100))
@@ -612,9 +644,9 @@ class YTSummarizer:
                 self._insert_inline_markdown(text_widget, "• " + content, "bullet")
                 text_widget.insert(tk.END, "\n")
             # 番号付きリスト
-            elif re.match(r'^\d+\.\s', line.strip()):
-                content = re.sub(r'^\d+\.\s', '', line.strip())
-                num = re.match(r'^(\d+)\.\s', line.strip()).group(1)
+            elif self._RE_NUMBERED_LIST.match(line.strip()):
+                content = self._RE_NUMBERED_LIST.sub('', line.strip())
+                num = self._RE_NUMBERED_LIST_NUM.match(line.strip()).group(1)
                 self._insert_inline_markdown(text_widget, f"{num}. " + content, "bullet")
                 text_widget.insert(tk.END, "\n")
             # 通常テキスト
@@ -626,16 +658,7 @@ class YTSummarizer:
 
     def _insert_inline_markdown(self, text_widget: tk.Text, text: str, base_tag: str = None):
         """インラインマークダウン（太字、斜体、コード）を処理"""
-        # パターン: **太字**, *斜体*, `コード`
-        patterns = [
-            (r'\*\*(.+?)\*\*', 'bold'),
-            (r'\*(.+?)\*', 'italic'),
-            (r'`(.+?)`', 'code'),
-        ]
-
-        # 全パターンを統合して処理
-        combined_pattern = r'(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)'
-        parts = re.split(combined_pattern, text)
+        parts = self._RE_INLINE_SPLIT.split(text)
 
         for part in parts:
             if not part:
@@ -807,8 +830,8 @@ class YTSummarizer:
 
                 label.configure(image=img)
                 label.image = img
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[WARN] Failed to load thumbnail for {video_id}: {e}")
 
         threading.Thread(target=load, daemon=True).start()
 
@@ -839,9 +862,9 @@ class YTSummarizer:
                 )
                 self.video_store.add(video)
 
-                self.root.after(0, lambda: self._on_video_added(video))
+                self._safe_after(0, lambda: self._on_video_added(video))
             except Exception as e:
-                self.root.after(0, lambda: messagebox.showerror(self.i18n.t("messages.error"), str(e)))
+                self._safe_after(0, lambda: messagebox.showerror(self.i18n.t("messages.error"), str(e)))
 
         self.url_entry.delete(0, tk.END)
         threading.Thread(target=add, daemon=True).start()
@@ -858,6 +881,7 @@ class YTSummarizer:
         if messagebox.askyesno(self.i18n.t("messages.confirm"), confirm_msg):
             self.video_store.remove(video.id)
             self.summary_store.remove(video.id)
+            self.thumbnail_cache.pop(video.id, None)
 
             if self.current_video_id == video.id:
                 self.current_video_id = None
@@ -879,16 +903,8 @@ class YTSummarizer:
     def _clear_panels(self):
         """パネルをクリア"""
         self.video_title_label.configure(text="")
-
-        self.summary_text.configure(state=tk.NORMAL)
-        self.summary_text.delete("1.0", tk.END)
-        self.summary_text.insert("1.0", self.i18n.t("ui.content.select_video"))
-        self.summary_text.configure(state=tk.DISABLED)
-
-        self.transcript_text.configure(state=tk.NORMAL)
-        self.transcript_text.delete("1.0", tk.END)
-        self.transcript_text.insert("1.0", self.i18n.t("ui.content.select_video"))
-        self.transcript_text.configure(state=tk.DISABLED)
+        self._set_text_content(self.summary_text, self.i18n.t("ui.content.select_video"))
+        self._set_text_content(self.transcript_text, self.i18n.t("ui.content.select_video"))
 
     def _update_panels(self, video: Video):
         """パネルを更新"""
@@ -899,15 +915,9 @@ class YTSummarizer:
         if summary:
             self._render_markdown(self.summary_text, summary)
         elif video.transcript:
-            self.summary_text.configure(state=tk.NORMAL)
-            self.summary_text.delete("1.0", tk.END)
-            self.summary_text.insert("1.0", self.i18n.t("ui.summary_panel.prompt_generate"))
-            self.summary_text.configure(state=tk.DISABLED)
+            self._set_text_content(self.summary_text, self.i18n.t("ui.summary_panel.prompt_generate"))
         else:
-            self.summary_text.configure(state=tk.NORMAL)
-            self.summary_text.delete("1.0", tk.END)
-            self.summary_text.insert("1.0", self.i18n.t("ui.transcript_panel.fetching"))
-            self.summary_text.configure(state=tk.DISABLED)
+            self._set_text_content(self.summary_text, self.i18n.t("ui.transcript_panel.fetching"))
 
         # 字幕
         self._update_transcript_display(video)
@@ -936,9 +946,9 @@ class YTSummarizer:
                 transcript = get_transcript(video.id)
                 self.video_store.set_transcript(video.id, transcript)
 
-                self.root.after(0, lambda: self._on_transcript_fetched(video))
+                self._safe_after(0, lambda: self._on_transcript_fetched(video))
             except Exception as e:
-                self.root.after(0, lambda: self._on_transcript_error(str(e)))
+                self._safe_after(0, lambda: self._on_transcript_error(str(e)))
 
         threading.Thread(target=fetch, daemon=True).start()
 
@@ -957,10 +967,7 @@ class YTSummarizer:
         else:
             display_error = error
 
-        self.transcript_text.configure(state=tk.NORMAL)
-        self.transcript_text.delete("1.0", tk.END)
-        self.transcript_text.insert("1.0", display_error)
-        self.transcript_text.configure(state=tk.DISABLED)
+        self._set_text_content(self.transcript_text, display_error)
 
     def _generate_summary(self):
         """要約を生成"""
@@ -980,10 +987,7 @@ class YTSummarizer:
         # 生成中表示
         self.generate_btn.configure(state=tk.DISABLED, text=f"⏳ {self.i18n.t('ui.summary_panel.generating')}",
                                      bg=self.COLORS["text_muted"])
-        self.summary_text.configure(state=tk.NORMAL)
-        self.summary_text.delete("1.0", tk.END)
-        self.summary_text.insert("1.0", self.i18n.t("ui.summary_panel.generating_summary"))
-        self.summary_text.configure(state=tk.DISABLED)
+        self._set_text_content(self.summary_text, self.i18n.t("ui.summary_panel.generating_summary"))
 
         def generate():
             try:
@@ -992,23 +996,21 @@ class YTSummarizer:
                 summary = summarize_transcript(transcript_text, prompt_template)
                 self.summary_store.set(video.id, summary)
 
-                self.root.after(0, lambda: self._on_summary_generated(video))
+                self._safe_after(0, lambda: self._on_summary_generated(video))
             except Exception as e:
-                self.root.after(0, lambda: self._on_summary_error(str(e)))
+                self._safe_after(0, lambda: self._on_summary_error(str(e)))
 
         threading.Thread(target=generate, daemon=True).start()
 
     def _on_summary_generated(self, video: Video):
         """要約生成完了"""
-        self.generate_btn.configure(state=tk.NORMAL, text=f"✨ {self.i18n.t('ui.summary_panel.generate')}",
-                                     bg=self.COLORS["accent"])
+        self._reset_generate_btn()
         self._update_panels(video)
         self._refresh_video_list()
 
     def _on_summary_error(self, error: str):
         """要約生成エラー"""
-        self.generate_btn.configure(state=tk.NORMAL, text=f"✨ {self.i18n.t('ui.summary_panel.generate')}",
-                                     bg=self.COLORS["accent"])
+        self._reset_generate_btn()
 
         # エラーメッセージを翻訳
         if error == "API_KEY_NOT_SET":
@@ -1016,14 +1018,11 @@ class YTSummarizer:
         else:
             display_error = f"{self.i18n.t('messages.summary_failed')}: {error}"
 
-        self.summary_text.configure(state=tk.NORMAL)
-        self.summary_text.delete("1.0", tk.END)
-        self.summary_text.insert("1.0", display_error)
-        self.summary_text.configure(state=tk.DISABLED)
+        self._set_text_content(self.summary_text, display_error)
 
     def _open_youtube(self):
         """YouTubeを開く"""
-        if self.current_video_id:
+        if self.current_video_id and validate_video_id(self.current_video_id):
             webbrowser.open(f"https://www.youtube.com/watch?v={self.current_video_id}")
 
     def _show_settings(self):
@@ -1091,28 +1090,12 @@ class YTSummarizer:
                  fg=self.COLORS["text"],
                  font=(self.i18n.get_font(), 11, "bold")).pack(anchor=tk.W)
 
-        # 入力フィールドコンテナ - フォーカス時にハイライト
-        entry_container = tk.Frame(content, bg=self.COLORS["border"])
-        entry_container.pack(fill=tk.X, pady=(10, 0))
-
-        entry_inner = tk.Frame(entry_container, bg=self.COLORS["surface_alt"])
-        entry_inner.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
-
-        api_entry = tk.Entry(entry_inner, font=(self.i18n.get_font(), 11),
-                              relief=tk.FLAT, bg=self.COLORS["surface_alt"],
-                              fg=self.COLORS["text"], show="•",
-                              insertbackground=self.COLORS["accent"])
-        api_entry.pack(fill=tk.X, padx=14, pady=12)
+        # 入力フィールドコンテナ
+        _, api_entry = self._create_bordered_entry(
+            content, font=(self.i18n.get_font(), 11), show="•",
+            pack_kwargs={"fill": tk.X, "pady": (10, 0)}
+        )
         api_entry.insert(0, get_api_key() or "")
-
-        def on_entry_focus_in(e):
-            entry_container.configure(bg=self.COLORS["accent"])
-
-        def on_entry_focus_out(e):
-            entry_container.configure(bg=self.COLORS["border"])
-
-        api_entry.bind("<FocusIn>", on_entry_focus_in)
-        api_entry.bind("<FocusOut>", on_entry_focus_out)
 
         # リンク
         link = tk.Label(content, text=f"→ {self.i18n.t('ui.settings_dialog.api_key_link')}",
@@ -1120,16 +1103,7 @@ class YTSummarizer:
                         cursor="hand2", font=(self.i18n.get_font(), 10))
         link.pack(anchor=tk.W, pady=(10, 0))
         link.bind("<Button-1>", lambda e: webbrowser.open("https://aistudio.google.com/app/apikey"))
-
-        # ホバー効果
-        def on_link_enter(e):
-            link.configure(fg=self.COLORS["accent_hover"])
-
-        def on_link_leave(e):
-            link.configure(fg=self.COLORS["accent"])
-
-        link.bind("<Enter>", on_link_enter)
-        link.bind("<Leave>", on_link_leave)
+        self._bind_hover(link, self.COLORS["accent_hover"], self.COLORS["accent"], config_key="fg")
 
         # ボタン
         btn_frame = tk.Frame(dialog, bg=self.COLORS["surface"])
@@ -1182,24 +1156,8 @@ class YTSummarizer:
                               activeforeground=self.COLORS["text_inverse"],
                               command=save)
         save_btn.pack(side=tk.LEFT, padx=8)
-
-        # ホバー効果
-        def on_save_enter(e):
-            save_btn.configure(bg=self.COLORS["accent_hover"])
-
-        def on_save_leave(e):
-            save_btn.configure(bg=self.COLORS["accent"])
-
-        def on_cancel_enter(e):
-            cancel_btn.configure(bg=self.COLORS["border"])
-
-        def on_cancel_leave(e):
-            cancel_btn.configure(bg=self.COLORS["surface_alt"])
-
-        save_btn.bind("<Enter>", on_save_enter)
-        save_btn.bind("<Leave>", on_save_leave)
-        cancel_btn.bind("<Enter>", on_cancel_enter)
-        cancel_btn.bind("<Leave>", on_cancel_leave)
+        self._bind_hover(save_btn, self.COLORS["accent_hover"], self.COLORS["accent"])
+        self._bind_hover(cancel_btn, self.COLORS["border"], self.COLORS["surface_alt"])
 
     def _on_language_changed(self):
         """言語変更時にUI全体を更新"""
@@ -1287,6 +1245,7 @@ class YTSummarizer:
 
     def _on_close(self):
         """アプリ終了"""
+        self._is_closing = True
         self.root.destroy()
 
 
